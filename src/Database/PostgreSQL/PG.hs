@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GADTs, GeneralizedNewtypeDeriving, OverloadedStrings #-}
 
 module Database.PostgreSQL.PG where
 
@@ -9,18 +9,18 @@ import Control.Monad.Reader
 import Data.ByteString (ByteString)
 import Data.List.Safe (head)
 import Database.PostgreSQL.Simple (connectPostgreSQL, fromOnly, Connection, Query, FromRow, ToRow)
-import Database.PostgreSQL.Simple.FromField (FromField)
+import Database.PostgreSQL.Simple.FromField 
 import qualified Database.PostgreSQL.Simple as Postgres
-import GHC.Int (Int64)
+import GHC.Int
 import Prelude hiding (head)
 
-data Operation a where
-  Execute :: ToRow q => Query -> q -> Operation Int64
-  Execute_ :: Query -> Operation Int64 
-  Query :: (ToRow q, FromRow r) => Query -> q -> Operation [r]
-  Query_ :: FromRow r => Query -> Operation [r]
+data PGOperation a where
+  Execute :: ToRow q => Query -> q -> PGOperation Int64
+  Execute_ :: Query -> PGOperation Int64 
+  Query :: (ToRow q, FromRow r) => Query -> q -> PGOperation [r]
+  Query_ :: FromRow r => Query -> PGOperation [r]
 
-type PGDSL a = Program Operation a
+type PGDSL a = Program PGOperation a
 
 class Monad m => MonadPG m where
   interpret :: PGDSL a -> m a
