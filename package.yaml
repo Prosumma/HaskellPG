@@ -1,4 +1,4 @@
-name:                PG
+name:                piggy 
 version:             1.0.0 
 github:              "prosumma/HaskellPG"
 license:             MIT
@@ -21,6 +21,12 @@ description:         Please see the README on GitHub at <https://github.com/pros
 
 dependencies:
 - base >= 4.7 && < 5
+- aeson
+- bytestring
+- exceptions
+- listsafe
+- mtl
+- postgresql-simple
 
 library:
   source-dirs: src
@@ -34,7 +40,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - PG
+    - piggy 
 
 tests:
   PG-test:
@@ -45,4 +51,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - PG
+    - piggy 

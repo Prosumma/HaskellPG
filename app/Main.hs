@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Database.PostgreSQL.PG
 
 main :: IO ()
-main = someFunc
+main = print x 
