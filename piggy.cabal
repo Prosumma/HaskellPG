@@ -1,0 +1,78 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.6.
+--
+-- see: https://github.com/sol/hpack
+
+name:           piggy
+version:        1.0.0
+description:    Please see the README on GitHub at <https://github.com/prosumma/HaskellPG#readme>
+homepage:       https://github.com/prosumma/HaskellPG#readme
+bug-reports:    https://github.com/prosumma/HaskellPG/issues
+author:         Gregory Higley
+maintainer:     greg@prosumma.com
+copyright:      2022 Gregory Higley
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/prosumma/HaskellPG
+
+library
+  exposed-modules:
+      Database.PostgreSQL.PG
+  other-modules:
+      Paths_piggy
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , exceptions
+    , listsafe
+    , mtl
+    , postgresql-simple
+  default-language: Haskell2010
+
+executable PG-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_piggy
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , exceptions
+    , listsafe
+    , mtl
+    , piggy
+    , postgresql-simple
+  default-language: Haskell2010
+
+test-suite PG-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_piggy
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , exceptions
+    , listsafe
+    , mtl
+    , piggy
+    , postgresql-simple
+  default-language: Haskell2010
