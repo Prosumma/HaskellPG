@@ -23,7 +23,7 @@ data Instruction a where
 
 type PGDSL a = Program Instruction a
 
-class MonadIO m => MonadPG m where
+class Monad m => MonadPG m where
   type ConnectionType m
   getConnection :: m (ConnectionType m)
   interpretPG :: PGDSL a -> m a
@@ -31,13 +31,13 @@ class MonadIO m => MonadPG m where
 withConnection :: MonadPG m => (ConnectionType m -> m a) -> m a
 withConnection f = getConnection >>= f
 
-withConn1 :: MonadPG m => (ConnectionType m -> a -> IO b) -> a -> m b
+withConn1 :: (MonadPG m, MonadIO m) => (ConnectionType m -> a -> IO b) -> a -> m b
 withConn1 f a = withConnection $ \conn -> liftIO $ f conn a
 
-withConn2 :: MonadPG m => (ConnectionType m -> a -> b -> IO c) -> a -> b -> m c
+withConn2 :: (MonadPG m, MonadIO m) => (ConnectionType m -> a -> b -> IO c) -> a -> b -> m c
 withConn2 f a b = withConnection $ \conn -> liftIO $ f conn a b
 
-interpg :: (MonadPG m, ConnectionType m ~ Connection) => PGDSL a -> m a
+interpg :: (MonadPG m, MonadIO m, ConnectionType m ~ Connection) => PGDSL a -> m a
 interpg m = case view m of
   Return a -> return a
   (Execute sql q) :>>= k -> withConn2 Postgres.execute sql q >>= interpg . k
