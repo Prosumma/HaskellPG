@@ -35,8 +35,10 @@ library
     , base >=4.7 && <5
     , bytestring
     , exceptions
+    , free
     , listsafe
     , mtl
+    , operational
     , postgresql-simple
   default-language: Haskell2010
 
@@ -52,8 +54,10 @@ executable PG-exe
     , base >=4.7 && <5
     , bytestring
     , exceptions
+    , free
     , listsafe
     , mtl
+    , operational
     , piggy
     , postgresql-simple
   default-language: Haskell2010
@@ -71,8 +75,10 @@ test-suite PG-test
     , base >=4.7 && <5
     , bytestring
     , exceptions
+    , free
     , listsafe
     , mtl
+    , operational
     , piggy
     , postgresql-simple
   default-language: Haskell2010

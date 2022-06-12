@@ -24,8 +24,10 @@ dependencies:
 - aeson
 - bytestring
 - exceptions
+- free
 - listsafe
 - mtl
+- operational
 - postgresql-simple
 
 library:
