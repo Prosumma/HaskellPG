@@ -24,6 +24,8 @@ type PGDSL a = Program PGOperation a
 
 class Monad m => MonadPG m where
   interpret :: PGDSL a -> m a
+  withTransaction :: m a -> m a
+  withTransaction t = t
 
 class Monad m => MonadConnection m where
   getConnection :: m Connection
@@ -52,6 +54,8 @@ connectPG connectionString pg = liftIO $ connectPostgreSQL connectionString >>= 
 
 instance MonadPG PG where 
   interpret = interpg
+  withTransaction t = withConnection $ \conn -> 
+    liftIO $ Postgres.withTransaction conn $ runReaderT (runPG t) conn 
 
 instance MonadConnection PG where
   getConnection = PG ask

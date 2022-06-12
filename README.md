@@ -7,6 +7,8 @@ It uses the [Operational monad](https://hackage.haskell.org/package/operational-
 ```haskell
 class Monad m => MonadPG m where
   interpret :: PGDSL a -> m a
+  withTransaction :: m a -> m a
+  withTransaction t = t
 ```
 
 A default interpreter &mdash; `interpg` &mdash; that talks to a Postgres database is provided, as is `PG`, a default implementation of `MonadPG` that actually talks to a database using `interpg`. 
