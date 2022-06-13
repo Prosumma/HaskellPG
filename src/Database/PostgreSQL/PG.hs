@@ -59,7 +59,7 @@ class Monad m => MonadConnection m where
   getConnection :: m Connection
 
 -- | Execute using the given `Connection`.
-withConnection :: (MonadConnection m) => (Connection -> m a) -> m a
+withConnection :: MonadConnection m => (Connection -> m a) -> m a
 withConnection f = getConnection >>= f
 
 -- | Execute a function with the type `Connection -> a -> IO b`.
