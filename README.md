@@ -13,6 +13,12 @@ class Monad m => MonadPG m where
 
 A default interpreter &mdash; `interpg` &mdash; that talks to a Postgres database is provided, as is `PG`, a default implementation of `MonadPG` that actually talks to a database using `interpg`. 
 
+```haskell
+instance MonadPG PG where 
+  interpret = interpg
+  withTransaction transact = withPostgresTransaction $ flip withPG transact 
+```
+
 In unit tests, it's relatively straightforward to replace actual database access with stubs.
 
 ```haskell
