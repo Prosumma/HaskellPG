@@ -8,7 +8,7 @@ import Control.Monad.Operational
 import Control.Monad.Reader
 import Data.ByteString (ByteString)
 import Data.List.Safe (head)
-import Database.PostgreSQL.Simple (fromOnly, Connection, Query, FromRow, ToRow)
+import Database.PostgreSQL.Simple (connectPostgreSQL, fromOnly, Connection, Query, FromRow, ToRow)
 import Database.PostgreSQL.Simple.FromField 
 import qualified Database.PostgreSQL.Simple as Postgres
 import GHC.Int
@@ -81,15 +81,6 @@ withConn2 f a b = withConnection $ \conn -> liftIO $ f conn a b
 withPostgresTransaction :: (MonadConnection m, MonadIO m) => (Connection -> IO a) -> m a
 withPostgresTransaction run = withConnection $ \conn -> liftIO $ Postgres.withTransaction conn (run conn) 
 
--- | Connect to a Postgres database using the given connection string and then use
--- it to issue commands to the database.
---
--- This function is the basis of `PG`'s `connectPG`.
-connectPostgreSQL :: MonadIO m => ByteString -> (Connection -> IO a) -> m a 
-connectPostgreSQL connectionString run = liftIO $ do
-  conn <- Postgres.connectPostgreSQL connectionString
-  run conn
-
 -- | The default interpreter for the PG DSL.
 --
 -- This interpreter actually talks to a Postgres database and calls Postgres functions.
@@ -116,7 +107,9 @@ instance MonadPG PG where
 
 -- | Connect to a Postgres database and run a `PG` instance with the given `Connection`.
 connectPG :: MonadIO m => ByteString -> PG a -> m a
-connectPG connectionString pg = connectPostgreSQL connectionString $ flip withPG pg
+connectPG connectionString pg = liftIO $ 
+  connectPostgreSQL connectionString >>= 
+    runReaderT (runPG pg) 
 
 instance MonadConnection PG where
   getConnection = PG ask
