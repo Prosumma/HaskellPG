@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, GeneralizedNewtypeDeriving, OverloadedStrings #-}
+{-# LANGUAGE GADTs, GeneralizedNewtypeDeriving #-}
 
 module Database.PostgreSQL.PG where
 
