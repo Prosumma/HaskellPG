@@ -81,6 +81,10 @@ withConn2 f a b = withConnection $ \conn -> liftIO $ f conn a b
 withPostgresTransaction :: (MonadConnection m, MonadIO m) => (Connection -> IO a) -> m a
 withPostgresTransaction run = withConnection $ \conn -> liftIO $ Postgres.withTransaction conn (run conn) 
 
+-- | Connect to a Postgres database using the given connection string and then use
+-- it to issue commands to the database.
+--
+-- This function is the basis of `PG`'s `connectPG`.
 connectPostgreSQL :: MonadIO m => ByteString -> (Connection -> IO a) -> m a 
 connectPostgreSQL connectionString run = liftIO $ do
   conn <- Postgres.connectPostgreSQL connectionString
