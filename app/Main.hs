@@ -72,6 +72,7 @@ app connectionString = do
   withTransaction $ do
     clearPeople
     addPerson "Flintstone" "Fred" (fromGregorian 0001 01 01)
+    addPerson "Germanicus" "Gaius" (fromGregorian 0012 08 31)
     getPeople >>= liftIO . print
 
 main :: IO ()
