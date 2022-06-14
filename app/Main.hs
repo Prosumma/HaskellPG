@@ -43,6 +43,11 @@ addPerson lastName firstName dob = query1 "\
   \RETURNING id, last_name, first_name, dob\
 \" (lastName, firstName, dob)
 
+-- |
+-- An example of a Monad that can talk to Postgres.
+--
+-- For more complex scenarios, something like `RWST Config () (Maybe Connection) IO a` may be a better choice. 
+-- Of course, we can also create a Monad that requires a connection before it is run, so we'd just wrap `ReaderT`.
 newtype App a = App { runApp :: StateT (Maybe Connection) IO a } 
   deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadState (Maybe Connection))
 
