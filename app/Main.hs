@@ -66,6 +66,9 @@ connectApp connectionString = do
   conn <- liftIO $ connectPostgreSQL connectionString 
   put $ Just conn 
 
+disconnectApp :: (MonadState (Maybe Connection) m) => m ()
+disconnectApp = put Nothing
+
 app :: (MonadIO m, MonadState (Maybe Connection) m, MonadPG m, MonadThrow m) => ByteString -> m ()
 app connectionString = do
   connectApp connectionString
@@ -74,6 +77,7 @@ app connectionString = do
     addPerson "Flintstone" "Fred" (fromGregorian 0001 01 01)
     addPerson "Germanicus" "Gaius" (fromGregorian 0012 08 31)
     getPeople >>= liftIO . print
+    disconnectApp
 
 main :: IO ()
 main = do
