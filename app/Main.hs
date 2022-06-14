@@ -16,7 +16,8 @@ import System.Environment
 
 data Person = Person {
   personId :: Int,
-  personName :: String,
+  personLastName :: String,
+  personFirstName :: String,
   personDOB :: Day
 } deriving Show
 
@@ -24,20 +25,23 @@ data NotConnectedException = NotConnectedException deriving (Show, Typeable)
 instance Exception NotConnectedException
 
 instance FromRow Person where
-  fromRow = Person <$> field <*> field <*> field
+  fromRow = Person <$> field <*> field <*> field <*> field
+
+clearPeople :: MonadPG m => m ()
+clearPeople = void $ execute_ "DELETE FROM person"
 
 getPeople :: MonadPG m => m [Person]
-getPeople = query_ "SELECT id, name, dob FROM person ORDER BY dob"
+getPeople = query_ "SELECT id, last_name, first_name, dob FROM person ORDER BY dob"
 
 getPerson :: (MonadThrow m, MonadPG m) => Int -> m Person 
-getPerson id = query1 "SELECT id, name, dob FROM person WHERE id = ?" (Only id) 
+getPerson id = query1 "SELECT id, last_name, first_name, dob FROM person WHERE id = ?" (Only id) 
 
-addPerson :: (MonadThrow m, MonadPG m) => String -> Day -> m Person
-addPerson name dob = query1 "\
-  \INSERT INTO person(name, dob)\
+addPerson :: (MonadThrow m, MonadPG m) => String -> String -> Day -> m Person
+addPerson lastName firstName dob = query1 "\
+  \INSERT INTO person(last_name, first_name, dob)\
   \SELECT ?, ?\
-  \RETURNING id, name, dob\
-\" (name, dob)
+  \RETURNING id, last_name, first_name, dob\
+\" (lastName, firstName, dob)
 
 newtype App a = App { runApp :: StateT (Maybe Connection) IO a } 
   deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadState (Maybe Connection))
@@ -54,7 +58,7 @@ instance MonadPG App where
   withTransaction transact = do
     (ret, conn) <- withPostgresTransaction $ 
       runStateT (runApp transact) . Just 
-    put conn
+    put conn -- In case it got changed in `transact`.
     return ret
 
 connectApp :: (MonadIO m, MonadState (Maybe Connection) m) => ByteString -> m ()
@@ -65,7 +69,10 @@ connectApp connectionString = do
 app :: (MonadIO m, MonadState (Maybe Connection) m, MonadPG m, MonadThrow m) => ByteString -> m ()
 app connectionString = do
   connectApp connectionString
-  withTransaction $ getPeople >>= liftIO . print
+  withTransaction $ do
+    clearPeople
+    addPerson "Flintstone" "Fred" (fromGregorian 0001 01 01)
+    getPeople >>= liftIO . print
 
 main :: IO ()
 main = do
