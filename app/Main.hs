@@ -67,9 +67,7 @@ instance MonadPG App where
     return ret
 
 connectApp :: (MonadIO m, MonadState (Maybe Connection) m) => ByteString -> m ()
-connectApp connectionString = do
-  conn <- liftIO $ connectPostgreSQL connectionString 
-  put $ Just conn 
+connectApp connectionString = liftIO (connectPostgreSQL connectionString) >>= put . Just 
 
 disconnectApp :: (MonadState (Maybe Connection) m) => m ()
 disconnectApp = put Nothing
