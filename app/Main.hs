@@ -39,7 +39,7 @@ getPerson id = query1 "SELECT id, last_name, first_name, dob FROM person WHERE i
 addPerson :: (MonadThrow m, MonadPG m) => String -> String -> Day -> m Person
 addPerson lastName firstName dob = query1 "\
   \INSERT INTO person(last_name, first_name, dob)\
-  \SELECT ?, ?\
+  \SELECT ?, ?, ?\
   \RETURNING id, last_name, first_name, dob\
 \" (lastName, firstName, dob)
 
