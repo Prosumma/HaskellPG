@@ -13,6 +13,8 @@ import Data.String.Conversions
 import Data.Time.Calendar (fromGregorian, Day)
 import Data.Typeable 
 import System.Environment
+import System.IO
+import Text.Printf
 
 data Person = Person {
   personId :: Int,
@@ -36,7 +38,7 @@ getPeople = query_ "SELECT id, last_name, first_name, dob FROM person ORDER BY d
 getPerson :: (MonadThrow m, MonadPG m) => Int -> m Person 
 getPerson id = query1 "SELECT id, last_name, first_name, dob FROM person WHERE id = ?" (Only id) 
 
-addPerson :: (MonadThrow m, MonadPG m) => String -> String -> Day -> m Person
+addPerson :: (MonadThrow m, MonadCatch m, MonadPG m) => String -> String -> Day -> m Person
 addPerson lastName firstName dob = query1 "\
   \INSERT INTO person(last_name, first_name, dob)\
   \SELECT ?, ?, ?\
@@ -49,7 +51,7 @@ addPerson lastName firstName dob = query1 "\
 -- For more complex scenarios, something like `RWST Config () (Maybe Connection) IO a` may be a better choice. 
 -- Of course, we can also create a Monad that requires a connection before it is run, so we'd just wrap `ReaderT`.
 newtype App a = App { runApp :: StateT (Maybe Connection) IO a } 
-  deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadState (Maybe Connection))
+  deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadCatch, MonadState (Maybe Connection))
 
 instance MonadConnection App where
   getConnection = App $ do 
@@ -72,13 +74,15 @@ connectApp connectionString = liftIO (connectPostgreSQL connectionString) >>= pu
 disconnectApp :: (MonadState (Maybe Connection) m) => m ()
 disconnectApp = put Nothing
 
-app :: (MonadIO m, MonadState (Maybe Connection) m, MonadPG m, MonadThrow m) => ByteString -> m ()
+app :: (MonadIO m, MonadState (Maybe Connection) m, MonadPG m, MonadCatch m) => ByteString -> m ()
 app connectionString = do
   connectApp connectionString
   withTransaction $ do
     clearPeople
     addPerson "Flintstone" "Fred" (fromGregorian 0001 01 01)
     addPerson "Germanicus" "Gaius" (fromGregorian 0012 08 31)
+    catchAll (void $ addPerson "Germanicus" "Gaius" (fromGregorian 0012 08 31)) $ \e ->
+      liftIO $ hPutStrLn stderr $ printf "EXCEPTION: %s" (show e) 
     getPeople >>= liftIO . print
     disconnectApp
 
