@@ -91,7 +91,7 @@ runTests = do
         lastName `shouldBe` "Schmitt"
       it "throws an exception if no rows are returned" $
         flip shouldThrow emptyListException $ do
-          withPG conn (value1_ "SELECT last_name FROM person WHERE id = 0") :: IO String
+          withPG conn $ value1_ "SELECT last_name FROM person WHERE id = 0" :: IO String
 
     describe "value1" $ do
       it "executes a query with args and returns the first value in the first row" $ do
