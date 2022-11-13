@@ -4,26 +4,32 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Database.PostgreSQL.PG
 import Test.Hspec
-import Database.PostgreSQL.Simple (connectPostgreSQL, Only (Only))
+import Test.Hspec.Expectations
+import Database.PostgreSQL.Simple (connectPostgreSQL, close, Only (Only))
 import Database.PostgreSQL.Simple.FromRow
+import Data.List.Safe 
+
+emptyListException :: Selector EmptyListException
+emptyListException = const True
 
 data Person = Person {
   personId :: !Int,
   personLastName :: !String,
   personFirstName :: !String
-} deriving (Show, Eq, Ord) 
+} deriving (Show, Eq, Ord)
 
 instance FromRow Person where
-  fromRow = Person <$> field <*> field <*> field 
+  fromRow = Person <$> field <*> field <*> field
 
-prepareDatabase :: IO () 
-prepareDatabase = do 
+prepareDatabase :: IO ()
+prepareDatabase = do
   conn <- connectPostgreSQL "dbname=postgres"
   withPG conn $ do
     execute_ "DROP DATABASE IF EXISTS person"
     execute_ "CREATE DATABASE person"
-  conn <- connectPostgreSQL "dbname=person" 
-  void $ withPG conn $ do 
+  close conn
+  conn <- connectPostgreSQL "dbname=person"
+  void $ withPG conn $ do
     execute_ "\
   \CREATE TABLE person(\
     \id SERIAL NOT NULL PRIMARY KEY,\
@@ -35,16 +41,16 @@ prepareDatabase = do
 
 runTests :: IO ()
 runTests = do
-  conn <- connectPostgreSQL "dbname=person" 
+  conn <- connectPostgreSQL "dbname=person"
 
   hspec $ do
 
-    describe "execute_" $ 
+    describe "execute_" $
       it "runs SQL without args and returns the number of rows affected" $ do
         rows <- withPG conn $
           execute_ "INSERT INTO person(first_name, last_name) VALUES('Carl', 'Schmitt')"
         rows `shouldBe` 1
-    
+
     describe "execute" $
       it "runs SQL with args and returns the number of rows affected" $ do
         rows <- withPG conn $ do
@@ -70,7 +76,7 @@ runTests = do
         person <- withPG conn $
           query1_ "SELECT id, first_name, last_name FROM person WHERE id = 1"
         person `shouldBe` Person 1 "Carl" "Schmitt"
-    
+
     describe "query" $
       it "executes a query with args and returns the first row" $ do
         person <- withPG conn $ do
@@ -78,11 +84,14 @@ runTests = do
           query1 "SELECT id, first_name, last_name FROM person WHERE id = ?" (Only arg)
         person `shouldBe` Person 2 "Flim" "Flam"
 
-    describe "value1_" $ 
+    describe "value1_" $ do
       it "executes a query without args and returns the first value in the first row" $ do
         lastName :: String <- withPG conn $
           value1_ "SELECT last_name FROM person WHERE id = 1"
         lastName `shouldBe` "Schmitt"
+      it "throws an exception if no rows are returned" $
+        flip shouldThrow emptyListException $ do
+          withPG conn (value1_ "SELECT last_name FROM person WHERE id = 0") :: IO String
 
     describe "value1" $ do
       it "executes a query with args and returns the first value in the first row" $ do
@@ -90,6 +99,10 @@ runTests = do
           let arg = 1 :: Int
           value1 "SELECT last_name FROM person WHERE id = ?" (Only arg)
         lastName `shouldBe` "Schmitt"
+      it "throws an exception if no rows are returned" $ do
+        flip shouldThrow emptyListException $ do
+          let arg = 0 :: Int 
+          withPG conn $ value1 "SELECT last_name FROM person WHERE id = ?" (Only arg) :: IO String
 
     describe "values_" $ do
       it "executes a query without args and returns the first value in all rows" $ do
@@ -105,6 +118,6 @@ runTests = do
         lastNames `shouldBe` ["Flam", "Schmitt"]
 
 main :: IO ()
-main = do 
+main = do
   prepareDatabase
   runTests

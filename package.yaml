@@ -56,3 +56,4 @@ tests:
     dependencies:
     - piggy 
     - hspec 
+    - hspec-expectations
