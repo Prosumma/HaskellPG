@@ -8,9 +8,9 @@ import Database.PostgreSQL.Simple (connectPostgreSQL, Only (Only))
 import Database.PostgreSQL.Simple.FromRow
 
 data Person = Person {
-  personId :: Int,
-  personLastName :: String,
-  personFirstName :: String
+  personId :: !Int,
+  personLastName :: !String,
+  personFirstName :: !String
 } deriving (Show, Eq, Ord) 
 
 instance FromRow Person where
