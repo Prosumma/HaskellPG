@@ -4,7 +4,6 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Database.PostgreSQL.PG
 import Test.Hspec
-import Test.Hspec.Expectations
 import Database.PostgreSQL.Simple (connectPostgreSQL, close, Connection, Only (Only))
 import Database.PostgreSQL.Simple.FromRow
 import Data.List.Safe 
@@ -31,13 +30,13 @@ prepareDatabase = do
   conn <- connectPostgreSQL "dbname=person"
   void $ withPG conn $ do
     execute_ "\
-  \CREATE TABLE person(\
-    \id SERIAL NOT NULL PRIMARY KEY,\
-    \first_name TEXT NOT NULL,\
-    \last_name TEXT NOT NULL,\
-    \UNIQUE(first_name, last_name)\
-  \)\
-\"
+      \CREATE TABLE person(\
+        \id SERIAL NOT NULL PRIMARY KEY,\
+        \first_name TEXT NOT NULL,\
+        \last_name TEXT NOT NULL,\
+        \UNIQUE(first_name, last_name)\
+      \)\
+    \"
   return conn
 
 runTests :: Connection -> IO ()
@@ -87,7 +86,8 @@ runTests conn = do
     describe "value1_" $ do
       it "executes a query without args and returns the first value in the first row" $ do
         flip shouldReturn "Schmitt" $ do
-          withPG conn $ value1_ "SELECT last_name FROM person WHERE id = 1" :: IO String
+          withPG conn $
+            value1_ "SELECT last_name FROM person WHERE id = 1" :: IO String
       it "throws EmptyListException if no rows are returned" $
         flip shouldThrow emptyListException $ do
           withPG conn $
