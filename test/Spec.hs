@@ -87,18 +87,19 @@ runTests = do
 
     describe "value1_" $ do
       it "executes a query without args and returns the first value in the first row" $ do
-        flip shouldReturn ("Schmitt" :: String) $ do
-          withPG conn $ value1_ "SELECT last_name FROM person WHERE id = 1"
+        flip shouldReturn "Schmitt" $ do
+          withPG conn $ value1_ "SELECT last_name FROM person WHERE id = 1" :: IO String
       it "throws EmptyListException if no rows are returned" $
         flip shouldThrow emptyListException $ do
-          withPG conn $ value1_ "SELECT last_name FROM person WHERE id = 0" :: IO String
+          withPG conn $
+            value1_ "SELECT last_name FROM person WHERE id = 0" :: IO String
 
     describe "value1" $ do
       it "executes a query with args and returns the first value in the first row" $ do
-        flip shouldReturn ("Schmitt" :: String) $
+        flip shouldReturn "Schmitt" $
           withPG conn $ do
             let arg = 1 :: Int
-            value1 "SELECT last_name FROM person WHERE id = ?" (Only arg)
+            value1 "SELECT last_name FROM person WHERE id = ?" (Only arg) :: PG String
       it "throws EmptyListException if no rows are returned" $ do
         flip shouldThrow emptyListException $ do
           let arg = 0 :: Int 
