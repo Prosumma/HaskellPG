@@ -47,75 +47,74 @@ runTests = do
 
     describe "execute_" $
       it "runs SQL without args and returns the number of rows affected" $ do
-        rows <- withPG conn $
-          execute_ "INSERT INTO person(first_name, last_name) VALUES('Carl', 'Schmitt')"
-        rows `shouldBe` 1
+        flip shouldReturn 1 $ do
+          withPG conn $
+            execute_ "INSERT INTO person(first_name, last_name) VALUES('Carl', 'Schmitt')"
 
     describe "execute" $
       it "runs SQL with args and returns the number of rows affected" $ do
-        rows <- withPG conn $ do
-          let args = ("Flim", "Flam") :: (String, String)
-          execute "INSERT INTO person(first_name, last_name) VALUES(?, ?)" args
-        rows `shouldBe` 1
+        flip shouldReturn 1 $ do
+          withPG conn $ do
+            let args = ("Flim", "Flam") :: (String, String)
+            execute "INSERT INTO person(first_name, last_name) VALUES(?, ?)" args
 
     describe "query_" $
       it "queries SQL without args and returns the rows" $ do
-        rows <- withPG conn $
-          query_ "SELECT id, first_name, last_name FROM person ORDER BY last_name, first_name"
-        rows `shouldBe` [Person 2 "Flim" "Flam", Person 1 "Carl" "Schmitt"]
+        let expected = [Person 2 "Flim" "Flam", Person 1 "Carl" "Schmitt"]
+        flip shouldReturn expected $ do 
+          withPG conn $ 
+            query_ "SELECT id, first_name, last_name FROM person ORDER BY last_name, first_name"
 
     describe "query" $
       it "queries SQL with args and returns the rows" $ do
-        rows <- withPG conn $ do
-          let args = ("Flim", "Flam") :: (String, String)
-          query "SELECT id, first_name, last_name FROM person WHERE first_name = ? and last_name = ?" args
-        rows `shouldBe` [Person 2 "Flim" "Flam"]
+        flip shouldReturn [Person 2 "Flim" "Flam"] $ do
+          withPG conn $ do
+            let args = ("Flim", "Flam") :: (String, String)
+            query "SELECT id, first_name, last_name FROM person WHERE first_name = ? and last_name = ?" args
 
     describe "query1_" $
       it "executes a query without args and returns the first row" $ do
-        person <- withPG conn $
-          query1_ "SELECT id, first_name, last_name FROM person WHERE id = 1"
-        person `shouldBe` Person 1 "Carl" "Schmitt"
+        flip shouldReturn (Person 1 "Carl" "Schmitt") $ do
+          withPG conn $
+            query1_ "SELECT id, first_name, last_name FROM person WHERE id = 1"
 
     describe "query" $
       it "executes a query with args and returns the first row" $ do
-        person <- withPG conn $ do
-          let arg = 2 :: Int
-          query1 "SELECT id, first_name, last_name FROM person WHERE id = ?" (Only arg)
-        person `shouldBe` Person 2 "Flim" "Flam"
+        flip shouldReturn (Person 2 "Flim" "Flam") $
+          withPG conn $ do
+            let arg = 2 :: Int
+            query1 "SELECT id, first_name, last_name FROM person WHERE id = ?" (Only arg)
 
     describe "value1_" $ do
       it "executes a query without args and returns the first value in the first row" $ do
-        lastName :: String <- withPG conn $
-          value1_ "SELECT last_name FROM person WHERE id = 1"
-        lastName `shouldBe` "Schmitt"
-      it "throws an exception if no rows are returned" $
+        flip shouldReturn ("Schmitt" :: String) $ do
+          withPG conn $ value1_ "SELECT last_name FROM person WHERE id = 1"
+      it "throws EmptyListException if no rows are returned" $
         flip shouldThrow emptyListException $ do
           withPG conn $ value1_ "SELECT last_name FROM person WHERE id = 0" :: IO String
 
     describe "value1" $ do
       it "executes a query with args and returns the first value in the first row" $ do
-        lastName :: String <- withPG conn $ do
-          let arg = 1 :: Int
-          value1 "SELECT last_name FROM person WHERE id = ?" (Only arg)
-        lastName `shouldBe` "Schmitt"
-      it "throws an exception if no rows are returned" $ do
+        flip shouldReturn ("Schmitt" :: String) $
+          withPG conn $ do
+            let arg = 1 :: Int
+            value1 "SELECT last_name FROM person WHERE id = ?" (Only arg)
+      it "throws EmptyListException if no rows are returned" $ do
         flip shouldThrow emptyListException $ do
           let arg = 0 :: Int 
           withPG conn $ value1 "SELECT last_name FROM person WHERE id = ?" (Only arg) :: IO String
 
     describe "values_" $ do
       it "executes a query without args and returns the first value in all rows" $ do
-        lastNames :: [String] <- withPG conn $
-          values_ "SELECT last_name FROM person ORDER BY last_name"
-        lastNames `shouldBe` ["Flam", "Schmitt"]
+        flip shouldReturn ["Flam", "Schmitt"] $ do
+          withPG conn $ values_ "SELECT last_name FROM person ORDER BY last_name" :: IO [String]
 
     describe "values" $ do
       it "executes a query with args and returns the first value in all rows" $ do
-        lastNames :: [String] <- withPG conn $ do
-          let arg = 0 :: Int
-          values "SELECT last_name FROM person WHERE id > ? ORDER BY last_name" (Only arg)
-        lastNames `shouldBe` ["Flam", "Schmitt"]
+        flip shouldReturn ["Flam", "Schmitt"] $ do
+          withPG conn $ do
+            let arg = 0 :: Int
+            values "SELECT last_name FROM person WHERE id > ? ORDER BY last_name" (Only arg) :: PG [String] 
 
 main :: IO ()
 main = do
