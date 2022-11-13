@@ -24,7 +24,6 @@ dependencies:
 - base >= 4.7 && < 5
 - bytestring
 - exceptions
-- free
 - listsafe
 - mtl
 - operational
@@ -56,3 +55,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - piggy 
+    - hspec 

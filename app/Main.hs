@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, GeneralisedNewtypeDeriving, OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts, GeneralisedNewtypeDeriving, OverloadedStrings, ScopedTypeVariables #-}
 
 module Main where
 
@@ -7,11 +7,12 @@ import Control.Monad.IO.Class
 import Control.Monad.State
 import Data.ByteString (ByteString)
 import Database.PostgreSQL.PG
-import Database.PostgreSQL.Simple (connectPostgreSQL, Connection, Only(..))
+import Database.PostgreSQL.Simple (connectPostgreSQL, Connection, Only(..), Query)
 import Database.PostgreSQL.Simple.FromRow
 import Data.String.Conversions
 import Data.Time.Calendar (fromGregorian, Day)
 import Data.Typeable 
+import GHC.Int (Int64)
 import System.Environment
 import System.IO
 import Text.Printf
@@ -74,19 +75,29 @@ connectApp connectionString = liftIO (connectPostgreSQL connectionString) >>= pu
 disconnectApp :: (MonadState (Maybe Connection) m) => m ()
 disconnectApp = put Nothing
 
+showException :: (Show e, MonadIO m) => e -> m ()
+showException e = liftIO $ hPutStrLn stderr $ printf "EXCEPTION: %s" (show e)
+
+count :: (MonadPG m, MonadThrow m) => Query -> m Int64
+count = value1_
+
 app :: (MonadIO m, MonadState (Maybe Connection) m, MonadPG m, MonadCatch m) => ByteString -> m ()
 app connectionString = do
   connectApp connectionString
-  withTransaction $ do
-    clearPeople
-    addPerson "Flintstone" "Fred" (fromGregorian 0001 01 01)
-    addPerson "Germanicus" "Gaius" (fromGregorian 0012 08 31)
-    catchAll (void $ addPerson "Germanicus" "Gaius" (fromGregorian 0012 08 31)) $ \e ->
-      liftIO $ hPutStrLn stderr $ printf "EXCEPTION: %s" (show e) 
-    getPeople >>= liftIO . print
-    disconnectApp
+  clearPeople
+  addPerson "Flintstone" "Fred" (fromGregorian 1972 02 20)
+  addPerson "Smith" "Gregory" (fromGregorian 2020 01 01)
+  addPerson "Smith" "Gregory" (fromGregorian 2021 01 01)
+  count "SELECT COUNT(*) FROM person" >>= printIt 
+  getPeople >>= printIt 
+  getPerson 7 >>= printIt 
+  where
+    printIt :: (MonadIO m, Show a) => a -> m () 
+    printIt = liftIO . print
 
 main :: IO ()
 main = do
-  connectionString <- liftIO $ convertString <$> getEnv "PGCONNECTION"
+  -- PGCONNECTION is a libpq connection string. Just look that up to see the format,
+  -- but it's basically "host=localhost dbname=person".
+  connectionString <- convertString <$> getEnv "PGCONNECTION"
   evalStateT (runApp (app connectionString)) Nothing 

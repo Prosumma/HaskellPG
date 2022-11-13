@@ -37,6 +37,9 @@ data PGOperation a where
 type PGDSL a = Program PGOperation a
 
 -- | The Monad for types that provide a context for executing PostgreSQL commands.
+--
+-- This monad provides no facilities for connecting. That has to be handled
+-- outside the scope of this monad.
 class Monad m => MonadPG m where
   -- | The interpreter for the Postgres DSL
   --
