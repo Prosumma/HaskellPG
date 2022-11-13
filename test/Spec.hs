@@ -5,7 +5,7 @@ import Control.Monad.IO.Class
 import Database.PostgreSQL.PG
 import Test.Hspec
 import Test.Hspec.Expectations
-import Database.PostgreSQL.Simple (connectPostgreSQL, close, Only (Only))
+import Database.PostgreSQL.Simple (connectPostgreSQL, close, Connection, Only (Only))
 import Database.PostgreSQL.Simple.FromRow
 import Data.List.Safe 
 
@@ -21,7 +21,7 @@ data Person = Person {
 instance FromRow Person where
   fromRow = Person <$> field <*> field <*> field
 
-prepareDatabase :: IO ()
+prepareDatabase :: IO Connection 
 prepareDatabase = do
   conn <- connectPostgreSQL "dbname=postgres"
   withPG conn $ do
@@ -38,11 +38,10 @@ prepareDatabase = do
     \UNIQUE(first_name, last_name)\
   \)\
 \"
+  return conn
 
-runTests :: IO ()
-runTests = do
-  conn <- connectPostgreSQL "dbname=person"
-
+runTests :: Connection -> IO ()
+runTests conn = do
   hspec $ do
 
     describe "execute_" $
@@ -118,6 +117,4 @@ runTests = do
             values "SELECT last_name FROM person WHERE id > ? ORDER BY last_name" (Only arg) :: PG [String] 
 
 main :: IO ()
-main = do
-  prepareDatabase
-  runTests
+main = prepareDatabase >>= runTests 
