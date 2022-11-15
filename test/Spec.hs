@@ -53,21 +53,21 @@ runTests conn = do
       it "runs SQL with args and returns the number of rows affected" $ do
         flip shouldReturn 1 $ do
           withPG conn $ do
-            let args = ("Flim", "Flam") :: (String, String)
+            let args = ("Murray", "Rothbard") :: (String, String)
             execute "INSERT INTO person(first_name, last_name) VALUES(?, ?)" args
 
     describe "query_" $
       it "queries SQL without args and returns the rows" $ do
-        let expected = [Person 2 "Flim" "Flam", Person 1 "Carl" "Schmitt"]
+        let expected = [Person 2 "Murray" "Rothbard", Person 1 "Carl" "Schmitt"]
         flip shouldReturn expected $ do 
           withPG conn $ 
             query_ "SELECT id, first_name, last_name FROM person ORDER BY last_name, first_name"
 
     describe "query" $
       it "queries SQL with args and returns the rows" $ do
-        flip shouldReturn [Person 2 "Flim" "Flam"] $ do
+        flip shouldReturn [Person 2 "Murray" "Rothbard"] $ do
           withPG conn $ do
-            let args = ("Flim", "Flam") :: (String, String)
+            let args = ("Murray", "Rothbard") :: (String, String)
             query "SELECT id, first_name, last_name FROM person WHERE first_name = ? and last_name = ?" args
 
     describe "query1_" $
@@ -78,7 +78,7 @@ runTests conn = do
 
     describe "query" $
       it "executes a query with args and returns the first row" $ do
-        flip shouldReturn (Person 2 "Flim" "Flam") $
+        flip shouldReturn (Person 2 "Murray" "Rothbard") $
           withPG conn $ do
             let arg = 2 :: Int
             query1 "SELECT id, first_name, last_name FROM person WHERE id = ?" (Only arg)
@@ -106,12 +106,12 @@ runTests conn = do
 
     describe "values_" $ do
       it "executes a query without args and returns the first value in all rows" $ do
-        flip shouldReturn ["Flam", "Schmitt"] $ do
+        flip shouldReturn ["Rothbard", "Schmitt"] $ do
           withPG conn $ values_ "SELECT last_name FROM person ORDER BY last_name" :: IO [String]
 
     describe "values" $ do
       it "executes a query with args and returns the first value in all rows" $ do
-        flip shouldReturn ["Flam", "Schmitt"] $ do
+        flip shouldReturn ["Rothbard", "Schmitt"] $ do
           withPG conn $ do
             let arg = 0 :: Int
             values "SELECT last_name FROM person WHERE id > ? ORDER BY last_name" (Only arg) :: PG [String] 
