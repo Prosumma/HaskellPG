@@ -2,13 +2,16 @@
 
 import Database.PostgreSQL.PG
 import Test.Hspec
-import Database.PostgreSQL.Simple (connectPostgreSQL, close, Connection, Only (Only), ToRow)
+import Database.PostgreSQL.Simple (connectPostgreSQL, close, Connection, Only (Only), ToRow, SqlError)
 import Database.PostgreSQL.Simple.FromRow
 import Data.List.Safe 
 import GHC.Generics (Generic)
 
 emptyListException :: Selector EmptyListException
 emptyListException = const True
+
+sqlError :: Selector SqlError
+sqlError = const True
 
 data Person = Person {
   personId :: !Int,
@@ -48,6 +51,7 @@ murray = Person 2 "Murray" "Rothbard"
 
 newCarl = NewPerson "Carl" "Schmitt"
 newMurray = NewPerson "Murray" "Rothbard"
+newMises = NewPerson "Ludwig" "von Mises"
 
 runTests :: Connection -> IO ()
 runTests conn = do
@@ -122,6 +126,20 @@ runTests conn = do
           withPG conn $ do
             let arg = 0 :: Int
             values "SELECT last_name FROM person WHERE id > ? ORDER BY last_name" (Only arg) :: PG [String] 
+
+    describe "withTransaction" $ do
+      it "rolls back a transaction if a failure occurs" $ do
+        flip shouldThrow sqlError $ do
+          withPG conn $ withTransaction $ do
+            execute "INSERT INTO person(first_name, last_name) VALUES(?, ?)" newMises
+            execute_ "rubbish"
+        -- This proves that the insert attempted above failed.
+        flip shouldReturn 2 $ do
+          withPG conn $
+            value1_ "SELECT COUNT(*) FROM person" :: IO Int
+        flip shouldReturn 0 $ do
+          withPG conn $
+            value1 "SELECT COUNT(*) FROM person WHERE first_name = ? AND last_name = ?" newMises :: IO Int
 
 main :: IO ()
 main = prepareDatabase >>= runTests 
