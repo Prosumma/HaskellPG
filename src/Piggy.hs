@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs, GeneralizedNewtypeDeriving #-}
 
-module Database.PostgreSQL.PG where
+module Piggy where
 
 import Control.Monad.Catch
 import Control.Monad.IO.Class
@@ -116,9 +116,8 @@ instance MonadUnliftIO PG where
 
 -- | Connect to a Postgres database and run a `PG` instance with the given `Connection`.
 connectPG :: MonadIO m => ByteString -> PG a -> m a
-connectPG connectionString pg = liftIO $ 
-  connectPostgreSQL connectionString >>= 
-    runReaderT (runPG pg) 
+connectPG connectionString pg = liftIO $
+  connectPostgreSQL connectionString >>= runReaderT (runPG pg)
 
 instance HasConnection PG where
   getConnection = PG ask

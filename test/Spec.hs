@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, DeriveAnyClass, DeriveGeneric #-}
 
-import Database.PostgreSQL.PG
-import Test.Hspec
 import Database.PostgreSQL.Simple (connectPostgreSQL, close, Connection, Only (Only), ToRow, SqlError)
 import Database.PostgreSQL.Simple.FromRow
 import Data.List.Safe 
 import GHC.Generics (Generic)
+import Piggy
+import Test.Hspec
 
 emptyListException :: Selector EmptyListException
 emptyListException = const True
