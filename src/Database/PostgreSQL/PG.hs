@@ -4,6 +4,7 @@ module Database.PostgreSQL.PG where
 
 import Control.Monad.Catch
 import Control.Monad.IO.Class
+import Control.Monad.IO.Unlift
 import Control.Monad.Operational
 import Control.Monad.Reader
 import Data.ByteString (ByteString)
@@ -58,38 +59,40 @@ class Monad m => MonadPG m where
 -- This is only needed for types that actually talk to a Postgres database,
 -- such as `PG`. In unit testing, just implement `MonadPG`. In the vast majority
 -- of cases, this typeclass is not needed as a constraint.
-class Monad m => MonadConnection m where
+class Monad m => HasConnection m where
   getConnection :: m Connection
 
 -- | Execute using the given `Connection`.
-withConnection :: MonadConnection m => (Connection -> m a) -> m a
+withConnection :: HasConnection m => (Connection -> m a) -> m a
 withConnection f = getConnection >>= f
 
 -- | Execute a function with the type `Connection -> a -> IO b`.
 --
 -- This is a helper function used in the implementation of `interpg`.
-withConn1 :: (MonadConnection m, MonadIO m) => (Connection -> a -> IO b) -> a -> m b
+withConn1 :: (HasConnection m, MonadIO m) => (Connection -> a -> IO b) -> a -> m b
 withConn1 f a = withConnection $ \conn -> liftIO $ f conn a
 
 -- | Execute a function with the type `Connection -> a -> b -> IO c`. 
 --
 -- This is a helper funtion used in the implementation of `interpg`.
-withConn2 :: (MonadConnection m, MonadIO m) => (Connection -> a -> b -> IO c) -> a -> b -> m c
+withConn2 :: (HasConnection m, MonadIO m) => (Connection -> a -> b -> IO c) -> a -> b -> m c
 withConn2 f a b = withConnection $ \conn -> liftIO $ f conn a b
 
 -- | Execute the given function inside a Postgres transaction.
 --
 -- Use this function to implement `MonadPG`'s `withTransaction`. For an example
 -- implementation, see `PG`.
-withPostgresTransaction :: (MonadConnection m, MonadIO m) => (Connection -> IO a) -> m a
-withPostgresTransaction run = withConnection $ \conn -> liftIO $ Postgres.withTransaction conn (run conn) 
+withPostgresTransaction :: (HasConnection m, MonadUnliftIO m) => m a -> m a 
+withPostgresTransaction action = do
+  conn <- getConnection
+  withRunInIO $ \run -> Postgres.withTransaction conn $ run action
 
 -- | The default interpreter for the PG DSL.
 --
 -- This interpreter actually talks to a Postgres database and calls Postgres functions.
 -- Use this function to implement `MonadPG`'s `interpret`. For an example
 -- implementation, see `PG`.
-interpg :: (MonadConnection m, MonadIO m) => PGDSL a -> m a
+interpg :: (HasConnection m, MonadIO m) => PGDSL a -> m a
 interpg m = case view m of
   Return a -> return a
   (Execute sql q) :>>= k -> withConn2 Postgres.execute sql q >>= interpg . k
@@ -97,7 +100,7 @@ interpg m = case view m of
   (Query sql q) :>>= k -> withConn2 Postgres.query sql q >>= interpg . k
   (Query_ sql) :>>= k -> withConn1 Postgres.query_ sql >>= interpg . k
 
--- | A Monad that implements `MonadPG` and `MonadConnection` and talks to a Postgres database. 
+-- | A Monad that implements `MonadPG` and `HasConnection` and talks to a Postgres database. 
 newtype PG a = PG { runPG :: ReaderT Connection IO a } deriving (Functor, Applicative, Monad, MonadIO, MonadThrow)
 
 -- | A helper function for running a `PG` if you've already got a `Connection`.
@@ -106,7 +109,10 @@ withPG conn pg = liftIO $ runReaderT (runPG pg) conn
 
 instance MonadPG PG where 
   interpret = interpg
-  withTransaction transact = withPostgresTransaction $ flip withPG transact 
+  withTransaction = withPostgresTransaction 
+
+instance MonadUnliftIO PG where
+  withRunInIO action = PG $ withRunInIO $ \run -> action (run . runPG) 
 
 -- | Connect to a Postgres database and run a `PG` instance with the given `Connection`.
 connectPG :: MonadIO m => ByteString -> PG a -> m a
@@ -114,7 +120,7 @@ connectPG connectionString pg = liftIO $
   connectPostgreSQL connectionString >>= 
     runReaderT (runPG pg) 
 
-instance MonadConnection PG where
+instance HasConnection PG where
   getConnection = PG ask
 
 -- | Execute a query with argument(s) and return the number of rows affected.

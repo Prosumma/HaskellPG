@@ -41,6 +41,7 @@ library
     , postgresql-simple
     , string-conversions
     , time
+    , unliftio-core
   default-language: Haskell2010
 
 executable PG-exe
@@ -62,6 +63,7 @@ executable PG-exe
     , postgresql-simple
     , string-conversions
     , time
+    , unliftio-core
   default-language: Haskell2010
 
 test-suite PG-test
@@ -86,4 +88,5 @@ test-suite PG-test
     , postgresql-simple
     , string-conversions
     , time
+    , unliftio-core
   default-language: Haskell2010

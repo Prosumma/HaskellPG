@@ -29,6 +29,7 @@ dependencies:
 - operational
 - postgresql-simple
 - string-conversions
+- unliftio-core
 - time
 
 library:
