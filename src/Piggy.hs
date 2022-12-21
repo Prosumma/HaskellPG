@@ -54,45 +54,36 @@ class Monad m => MonadPG m where
   withTransaction :: m a -> m a
   withTransaction t = t
 
--- | The Monad for types that provide a Postgres `Connection` instance.
---
--- This is only needed for types that actually talk to a Postgres database,
--- such as `PG`. In unit testing, just implement `MonadPG`. In the vast majority
--- of cases, this typeclass is not needed as a constraint.
-class Monad m => HasConnection m where
-  getConnection :: m Connection
-
--- | Execute using the given `Connection`.
-withConnection :: HasConnection m => (Connection -> m a) -> m a
-withConnection f = getConnection >>= f
+class MonadConnection m where
+  withConnection :: (Connection -> m a) -> m a
 
 -- | Execute a function with the type `Connection -> a -> IO b`.
 --
 -- This is a helper function used in the implementation of `interpg`.
-withConn1 :: (HasConnection m, MonadIO m) => (Connection -> a -> IO b) -> a -> m b
+withConn1 :: (MonadConnection m, MonadIO m) => (Connection -> a -> IO b) -> a -> m b
 withConn1 f a = withConnection $ \conn -> liftIO $ f conn a
 
 -- | Execute a function with the type `Connection -> a -> b -> IO c`. 
 --
 -- This is a helper funtion used in the implementation of `interpg`.
-withConn2 :: (HasConnection m, MonadIO m) => (Connection -> a -> b -> IO c) -> a -> b -> m c
+withConn2 :: (MonadConnection m, MonadIO m) => (Connection -> a -> b -> IO c) -> a -> b -> m c
 withConn2 f a b = withConnection $ \conn -> liftIO $ f conn a b
 
 -- | Execute the given function inside a Postgres transaction.
 --
 -- Use this function to implement `MonadPG`'s `withTransaction`. For an example
 -- implementation, see `PG`.
-withPostgresTransaction :: (HasConnection m, MonadUnliftIO m) => m a -> m a 
-withPostgresTransaction action = do
-  conn <- getConnection
-  withRunInIO $ \run -> Postgres.withTransaction conn $ run action
+withPostgresTransaction :: (MonadConnection m, MonadUnliftIO m) => m a -> m a 
+withPostgresTransaction action =  withConnection $ \conn -> 
+  withRunInIO $ \run -> 
+    Postgres.withTransaction conn $ run action
 
 -- | The default interpreter for the PG DSL.
 --
 -- This interpreter actually talks to a Postgres database and calls Postgres functions.
 -- Use this function to implement `MonadPG`'s `interpret`. For an example
 -- implementation, see `PG`.
-interpg :: (HasConnection m, MonadIO m) => PGDSL a -> m a
+interpg :: (MonadConnection m, MonadIO m) => PGDSL a -> m a
 interpg m = case view m of
   Return a -> return a
   (Execute sql q) :>>= k -> withConn2 Postgres.execute sql q >>= interpg . k
@@ -107,6 +98,11 @@ newtype PG a = PG { runPG :: ReaderT Connection IO a } deriving (Functor, Applic
 withPG :: MonadIO m => Connection -> PG a -> m a
 withPG conn pg = liftIO $ runReaderT (runPG pg) conn
 
+instance MonadConnection PG where
+  withConnection pg = do 
+    conn <- PG ask
+    withPG conn (pg conn)
+
 instance MonadPG PG where 
   interpret = interpg
   withTransaction = withPostgresTransaction 
@@ -118,9 +114,6 @@ instance MonadUnliftIO PG where
 connectPG :: MonadIO m => ByteString -> PG a -> m a
 connectPG connectionString pg = liftIO $
   connectPostgreSQL connectionString >>= runReaderT (runPG pg)
-
-instance HasConnection PG where
-  getConnection = PG ask
 
 -- | Execute a query with argument(s) and return the number of rows affected.
 --
