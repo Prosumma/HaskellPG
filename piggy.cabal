@@ -5,13 +5,13 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           piggy
-version:        1.0.0
+version:        1.0.1
 description:    Please see the README on GitHub at <https://github.com/prosumma/HaskellPG#readme>
 homepage:       https://github.com/prosumma/HaskellPG#readme
 bug-reports:    https://github.com/prosumma/HaskellPG/issues
 author:         Gregory Higley
 maintainer:     greg@prosumma.com
-copyright:      2022 Gregory Higley
+copyright:      2022 - 2023 Gregory Higley
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple

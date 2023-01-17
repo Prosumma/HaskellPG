@@ -6,6 +6,7 @@ module Piggy (
   PG(..),
   PGOperation(..),
   PGDSL,
+  close,
   connectPG,
   connectPostgreSQL,
   execute,
@@ -33,7 +34,7 @@ import Control.Monad.Operational
 import Control.Monad.Reader
 import Data.ByteString (ByteString)
 import Data.List.Safe (head)
-import Database.PostgreSQL.Simple (connectPostgreSQL, fromOnly, Connection, Query, FromRow, ToRow)
+import Database.PostgreSQL.Simple (close, connectPostgreSQL, fromOnly, Connection, Query, FromRow, ToRow)
 import Database.PostgreSQL.Simple.FromField 
 import qualified Database.PostgreSQL.Simple as Postgres
 import GHC.Int
