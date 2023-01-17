@@ -1,6 +1,30 @@
 {-# LANGUAGE GADTs, GeneralizedNewtypeDeriving #-}
 
-module Piggy where
+module Piggy (
+  Connection,
+  MonadPG(..),
+  PG(..),
+  PGOperation(..),
+  PGDSL,
+  connectPG,
+  connectPostgreSQL,
+  execute,
+  execute_,
+  fromOnly,
+  interpg,
+  query,
+  query_,
+  query1,
+  query1_,
+  value1,
+  value1_,
+  values,
+  values_,
+  withConn1,
+  withConn2,
+  withPG,
+  withPostgresTransaction
+) where
 
 import Control.Monad.Catch
 import Control.Monad.IO.Class
